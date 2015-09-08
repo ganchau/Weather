@@ -16,7 +16,11 @@
 
 
 @interface WTTableViewController ()
-@property(strong) NSDictionary *weather;
+@property (nonatomic, strong) NSDictionary *weather;
+@property (nonatomic, strong) NSMutableDictionary *currentDictionary;   // current section being parsed
+@property (nonatomic, strong) NSMutableDictionary *xmlWeather;          // completed parsed xml response
+@property (nonatomic, strong) NSString *elementName;
+@property (nonatomic, strong) NSMutableString *outString;
 @end
 
 @implementation WTTableViewController
@@ -124,12 +128,75 @@
 
 - (IBAction)plistTapped:(id)sender
 {
+    NSString *urlString = [NSString stringWithFormat:@"%@weather.php?format=plist", BaseURLString];
+    NSURL *url = [NSURL URLWithString:urlString];
+    NSURLRequest *urlRequest = [[NSURLRequest alloc] initWithURL:url];
     
+    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:urlRequest];
+    
+    // use the property list response serializer
+    operation.responseSerializer = [AFPropertyListResponseSerializer serializer];
+    
+    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        self.weather = (NSDictionary *)responseObject;
+        self.title = @"PLIST Retrieved";
+        [self.tableView reloadData];
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Error Retrieving Weather"
+                                                                                 message:error.localizedDescription
+                                                                          preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK"
+                                                     style:UIAlertActionStyleDefault
+                                                   handler:^(UIAlertAction *action) {
+                                                       [self dismissViewControllerAnimated:YES completion:nil];
+                                                   }];
+        
+        [alertController addAction:ok];
+        
+        [self presentViewController:alertController
+                           animated:YES
+                         completion:nil];
+    }];
+    
+    [operation start];
 }
 
 - (IBAction)xmlTapped:(id)sender
 {
+    NSString *urlString = [NSString stringWithFormat:@"%@weather.php?format=xml", BaseURLString];
+    NSURL *url = [NSURL URLWithString:urlString];
+    NSURLRequest *urlRequest = [[NSURLRequest alloc] initWithURL:url];
+
+    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:urlRequest];
     
+    // use the xml response serializer
+    operation.responseSerializer = [AFXMLParserResponseSerializer serializer];
+
+    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSXMLParser *xmlParser = (NSXMLParser *)responseObject;
+        [xmlParser setShouldProcessNamespaces:YES];
+        xmlParser.delegate = self;
+        [xmlParser parse];
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Error Retrieving Weather"
+                                                                                 message:error.localizedDescription
+                                                                          preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK"
+                                                     style:UIAlertActionStyleDefault
+                                                   handler:^(UIAlertAction *action) {
+                                                       [self dismissViewControllerAnimated:YES completion:nil];
+                                                   }];
+        
+        [alertController addAction:ok];
+        
+        [self presentViewController:alertController
+                           animated:YES
+                         completion:nil];
+    }];
+    
+    [operation start];
 }
 
 - (IBAction)clientTapped:(id)sender
@@ -154,7 +221,6 @@
     if (!self.weather) {
         return 0;
     }
-    
     switch (section) {
         case 0: {
             return 1;
@@ -201,6 +267,85 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     // Navigation logic may go here. Create and push another view controller.
+}
+
+#pragma mark - XML parser delegate
+
+- (void)parserDidStartDocument:(NSXMLParser *)parser
+{
+    self.xmlWeather = [NSMutableDictionary dictionary];
+}
+
+- (void)parser:(NSXMLParser *)parser didStartElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName attributes:(NSDictionary *)attributeDict
+{
+    self.elementName = qName;
+    
+    if ([qName isEqualToString:@"current_condition"] ||
+        [qName isEqualToString:@"weather"] ||
+        [qName isEqualToString:@"request"]) {
+        self.currentDictionary = [NSMutableDictionary dictionary];
+    }
+    self.outString = [NSMutableString string];
+}
+
+- (void)parser:(NSXMLParser *)parser foundCharacters:(NSString *)string
+{
+    if (!self.elementName) {
+        return;
+    }
+    
+    [self.outString appendFormat:@"%@", string];
+}
+
+- (void)parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName
+{
+    // step 1
+    if ([qName isEqualToString:@"current_condition"] ||
+        [qName isEqualToString:@"request"]) {
+        self.xmlWeather[qName] = @[self.currentDictionary];
+        self.currentDictionary = nil;
+    }
+    
+    // step 2
+    else if ([qName isEqualToString:@"weather"]) {
+        // initialize the list of weather items if it doesn't exist
+        NSMutableArray *array = self.xmlWeather[@"weather"] ?: [NSMutableArray array];
+        
+        // add the current weather object
+        [array addObject:self.currentDictionary];
+        
+        // set the new array to the "weather" key on xmlWeather dictionary
+        self.xmlWeather[@"weather"] = array;
+        
+        self.currentDictionary = nil;
+    }
+    
+    // step 3
+    else if ([qName isEqualToString:@"value"]) {
+        // ignore value tags, they only appear in the two conditions below
+    }
+    
+    // step 4
+    else if ([qName isEqualToString:@"weatherDesc"] ||
+             [qName isEqualToString:@"weatherIconUrl"]) {
+        NSDictionary *dictionary = @{ @"value" : self.outString };
+        NSArray *array = @[dictionary];
+        self.currentDictionary[qName] = array;
+    }
+    
+    // step 5
+    else if (qName) {
+        self.currentDictionary[qName] = self.outString;
+    }
+    
+    self.elementName = nil;
+}
+
+- (void)parserDidEndDocument:(NSXMLParser *)parser
+{
+    self.weather = @{ @"data" : self.xmlWeather };
+    self.title = @"XML Retrieved";
+    [self.tableView reloadData];
 }
 
 @end
