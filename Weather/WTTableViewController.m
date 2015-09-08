@@ -12,6 +12,8 @@
 #import "WeatherAnimationViewController.h"
 #import "NSDictionary+weather.h"
 #import "NSDictionary+weather_package.h"
+#import "Constants.h"
+
 
 @interface WTTableViewController ()
 @property(strong) NSDictionary *weather;
@@ -83,7 +85,41 @@
 
 - (IBAction)jsonTapped:(id)sender
 {
+    // step 1
+    NSString *urlString = [NSString stringWithFormat:@"%@weather.php?format=json", BaseURLString];
+    NSURL *url = [NSURL URLWithString:urlString];
+    NSURLRequest *urlRequest = [NSURLRequest requestWithURL:url];
     
+    // step 2
+    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:urlRequest];
+    operation.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        // step 3
+        self.weather = (NSDictionary *)responseObject;
+        self.title = @"JSON Retrieved";
+        [self.tableView reloadData];
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        // step 4
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Error Retrieving Weather"
+                                                                                 message:error.localizedDescription
+                                                                          preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK"
+                                                     style:UIAlertActionStyleDefault
+                                                   handler:^(UIAlertAction *action) {
+                                                       [self dismissViewControllerAnimated:YES completion:nil];
+                                                   }];
+        
+        [alertController addAction:ok];
+        
+        [self presentViewController:alertController
+                           animated:YES
+                         completion:nil];
+    }];
+    
+    // step 5
+    [operation start];
 }
 
 - (IBAction)plistTapped:(id)sender
@@ -115,7 +151,21 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return 0;
+    if (!self.weather) {
+        return 0;
+    }
+    
+    switch (section) {
+        case 0: {
+            return 1;
+        }
+        case 1: {
+            NSArray *upcomingWeather = [self.weather upcomingWeather];
+            return upcomingWeather.count;
+        }
+        default:
+            return 0;
+    }
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -124,7 +174,23 @@
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier forIndexPath:indexPath];
     
     // Configure the cell...
+    NSDictionary *daysWeather = nil;
     
+    switch (indexPath.section) {
+        case 0: {
+            daysWeather = [self.weather currentCondition];
+            break;
+        }
+        case 1: {
+            NSArray *upcomingWeather = [self.weather upcomingWeather];
+            daysWeather = upcomingWeather[indexPath.row];
+            break;
+        }
+        default:
+            break;
+    }
+    
+    cell.textLabel.text = [daysWeather weatherDescription];
     
     return cell;
 }
