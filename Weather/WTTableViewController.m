@@ -13,6 +13,7 @@
 #import "NSDictionary+weather.h"
 #import "NSDictionary+weather_package.h"
 #import "Constants.h"
+#import <UIImageView+AFNetworking.h>
 
 
 @interface WTTableViewController ()
@@ -201,8 +202,15 @@
 
 - (IBAction)clientTapped:(id)sender
 {
-    
+    UIActionSheet *actionSheet = [[UIActionSheet alloc] initWithTitle:@"AFHTTPSessionManager"
+                                                             delegate:self
+                                                    cancelButtonTitle:@"Cancel"
+                                               destructiveButtonTitle:nil
+                                                    otherButtonTitles:@"HTTP GET", @"HTTP POST", nil];
+    [actionSheet showFromBarButtonItem:sender animated:YES];
 }
+
+
 
 - (IBAction)apiTapped:(id)sender
 {
@@ -258,6 +266,25 @@
     
     cell.textLabel.text = [daysWeather weatherDescription];
     
+    NSURL *url = [NSURL URLWithString:[daysWeather weatherIconURL]];
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    UIImage *placeholderImage = [UIImage imageNamed:@"placeholder"];
+    
+    __weak UITableViewCell *weakCell = cell;
+    weakCell.imageView.alpha = 0;
+
+    [cell.imageView setImageWithURLRequest:request
+                          placeholderImage:placeholderImage
+                                   success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
+                                       weakCell.imageView.image = image;
+                                       [UIView animateWithDuration:0.3
+                                                        animations:^{
+                                                            weakCell.imageView.alpha = 1;
+                                                            [self.view layoutIfNeeded];
+                                                        }];
+                                       [weakCell setNeedsLayout];
+                                   }
+                                   failure:nil];
     return cell;
 }
 
@@ -347,5 +374,87 @@
     self.title = @"XML Retrieved";
     [self.tableView reloadData];
 }
+
+#pragma mark = action sheet delegate methods
+
+- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex == actionSheet.cancelButtonIndex) {
+        // user pressed cancel button
+        return;
+    }
+    
+    // step 1
+    NSURL *baseUrl = [NSURL URLWithString:BaseURLString];
+    NSDictionary *params = @{ @"format" : @"json" };
+    
+    // step 2
+    AFHTTPSessionManager *manager = [[AFHTTPSessionManager alloc] initWithBaseURL:baseUrl];
+    manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    // step 3
+    if (buttonIndex == 0) {
+        [manager GET:@"weather.php"
+          parameters:params
+             success:^(NSURLSessionDataTask *task, id responseObject) {
+                 self.weather = responseObject;
+                 self.title = @"HTTP GET";
+                 [self.tableView reloadData];
+             } failure:^(NSURLSessionDataTask *task, NSError *error) {
+                 UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Error Retrieving Weather"
+                                                                     message:[error localizedDescription]
+                                                                    delegate:nil
+                                                           cancelButtonTitle:@"Ok"
+                                                           otherButtonTitles:nil];
+                 [alertView show];
+             }];
+    }
+    
+    // step 4
+    else if (buttonIndex == 1) {
+        [manager POST:@"weather.php"
+           parameters:params
+              success:^(NSURLSessionDataTask *task, id responseObject) {
+                  self.weather = responseObject;
+                  self.title = @"HTTP POST";
+                  [self.tableView reloadData];
+              } failure:^(NSURLSessionDataTask *task, NSError *error) {
+                  UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Error Retrieving Weather"
+                                                                      message:[error localizedDescription]
+                                                                     delegate:nil
+                                                            cancelButtonTitle:@"Ok"
+                                                            otherButtonTitles:nil];
+                  [alertView show];
+              }];
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @end
