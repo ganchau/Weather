@@ -9,6 +9,8 @@
 #import <Foundation/Foundation.h>
 
 extern NSString *const BaseURLString;
+extern NSString *const WorldWeatherOnlineURLString;
+extern NSString *const WorldWeatherOnlineAPIKey;
 
 @interface Constants : NSObject
 
