@@ -39,6 +39,8 @@
 {
     [super viewDidLoad];
     self.navigationController.toolbarHidden = NO;
+    self.locationManager = [[CLLocationManager alloc] init];
+    self.locationManager.delegate = self;
 
     // Uncomment the following line to preserve selection between presentations.
     // self.clearsSelectionOnViewWillAppear = NO;
@@ -217,7 +219,20 @@
 
 - (IBAction)apiTapped:(id)sender
 {
-    
+    if([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)]){
+        NSUInteger code = [CLLocationManager authorizationStatus];
+        if (code == kCLAuthorizationStatusNotDetermined && ([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)] || [self.locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)])) {
+            // choose one request according to your business.
+            if([[NSBundle mainBundle] objectForInfoDictionaryKey:@"NSLocationAlwaysUsageDescription"]){
+                [self.locationManager requestAlwaysAuthorization];
+            } else if([[NSBundle mainBundle] objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"]) {
+                [self.locationManager requestWhenInUseAuthorization];
+            } else {
+                NSLog(@"Info.plist does not contain NSLocationAlwaysUsageDescription or NSLocationWhenInUseUsageDescription");
+            }
+        }
+    }
+    [self.locationManager startUpdatingLocation];
 }
 
 #pragma mark - Table view data source
@@ -399,7 +414,39 @@
                      completion:nil];
 }
 
+#pragma mark - cllocationmanager delegate methods
 
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
+{
+    // last object contains the most recent location
+    CLLocation *newLocation = [locations lastObject];
+    
+    // if the location is more than 5 minutes old, ignore it
+    if ([newLocation.timestamp timeIntervalSinceNow] > 300) {
+        return;
+    }
+    NSLog(@"LOCATION: %@", newLocation);
+    
+    [self.locationManager stopUpdatingLocation];
+    
+    WeatherHTTPClient *client = [WeatherHTTPClient sharedWeatherHTTPClient];
+    client.delegate = self;
+    [client updateWeatherAtLocation:newLocation forNumberOfDays:5];
+}
+
+#pragma mark - weatherhttpclient delegate methods
+
+- (void)weatherHTTPClient:(WeatherHTTPClient *)client didUpdateWithWeather:(id)weather
+{
+    self.weather = weather;
+    self.title = @"API Updated";
+    [self.tableView reloadData];
+}
+
+- (void)weatherHTTPClient:(WeatherHTTPClient *)client didFailWithError:(NSError *)error
+{
+    [self displayAlertMessagesForError:error.localizedDescription];
+}
 
 
 
