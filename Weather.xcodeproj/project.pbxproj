@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		96087E82D4EC650908B62008 /* libPods-Weather.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2DD999699D3E51C696752EFB /* libPods-Weather.a */; };
 		BD88E3971B9F422A000692DD /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = BD88E3961B9F422A000692DD /* Constants.m */; };
+		BDD11E691BA09C0700978A6E /* WeatherHTTPClient.m in Sources */ = {isa = PBXBuildFile; fileRef = BDD11E681BA09C0700978A6E /* WeatherHTTPClient.m */; };
 		D233D07A16B400EF005212DE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = D233D07816B400EF005212DE /* InfoPlist.strings */; };
 		D233D07C16B400EF005212DE /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = D233D07B16B400EF005212DE /* main.m */; };
 		D233D08016B400EF005212DE /* WTAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D233D07F16B400EF005212DE /* WTAppDelegate.m */; };
@@ -33,6 +34,8 @@
 		56C84EF18FB5DDB5DCA83C80 /* Pods-Weather.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Weather.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Weather/Pods-Weather.debug.xcconfig"; sourceTree = "<group>"; };
 		BD88E3951B9F422A000692DD /* Constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
 		BD88E3961B9F422A000692DD /* Constants.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Constants.m; sourceTree = "<group>"; };
+		BDD11E671BA09C0700978A6E /* WeatherHTTPClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WeatherHTTPClient.h; sourceTree = "<group>"; };
+		BDD11E681BA09C0700978A6E /* WeatherHTTPClient.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WeatherHTTPClient.m; sourceTree = "<group>"; };
 		D233D06B16B400EF005212DE /* Weather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Weather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D233D07716B400EF005212DE /* Weather-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Weather-Info.plist"; sourceTree = "<group>"; };
 		D233D07916B400EF005212DE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -109,6 +112,8 @@
 		BD88E3941B9F41CC000692DD /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				BDD11E671BA09C0700978A6E /* WeatherHTTPClient.h */,
+				BDD11E681BA09C0700978A6E /* WeatherHTTPClient.m */,
 				D233D0D016B405D5005212DE /* NSDictionary+weather.h */,
 				D233D0D116B405D5005212DE /* NSDictionary+weather.m */,
 				D233D0CE16B405D5005212DE /* NSDictionary+weather_package.h */,
@@ -206,7 +211,7 @@
 			isa = PBXProject;
 			attributes = {
 				CLASSPREFIX = WT;
-				LastUpgradeCheck = 0450;
+				LastUpgradeCheck = 0700;
 				ORGANIZATIONNAME = "Scott Sherwood";
 			};
 			buildConfigurationList = D233D06516B400EF005212DE /* Build configuration list for PBXProject "Weather" */;
@@ -282,6 +287,7 @@
 				D233D09416B4011B005212DE /* WTTableViewController.m in Sources */,
 				D233D0CC16B405C3005212DE /* WeatherAnimationViewController.m in Sources */,
 				D233D0D216B405D5005212DE /* NSDictionary+weather_package.m in Sources */,
+				BDD11E691BA09C0700978A6E /* WeatherHTTPClient.m in Sources */,
 				BD88E3971B9F422A000692DD /* Constants.m in Sources */,
 				D233D0D316B405D5005212DE /* NSDictionary+weather.m in Sources */,
 			);
@@ -320,6 +326,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
+				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -331,7 +338,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 			};
@@ -352,7 +359,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
@@ -370,6 +377,7 @@
 				GCC_PREFIX_HEADER = "Weather/Weather-Prefix.pch";
 				INFOPLIST_FILE = "Weather/Weather-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.2;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.scott-sherwood.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -386,6 +394,7 @@
 				GCC_PREFIX_HEADER = "Weather/Weather-Prefix.pch";
 				INFOPLIST_FILE = "Weather/Weather-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.2;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.scott-sherwood.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};

@@ -13,6 +13,7 @@
 #import "NSDictionary+weather.h"
 #import "NSDictionary+weather_package.h"
 #import "Constants.h"
+#import <UIImageView+AFNetworking.h>
 
 
 @interface WTTableViewController ()
@@ -44,12 +45,6 @@
  
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
-}
-
-- (void)didReceiveMemoryWarning
-{
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
 }
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
@@ -105,21 +100,7 @@
         [self.tableView reloadData];
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
         // step 4
-        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Error Retrieving Weather"
-                                                                                 message:error.localizedDescription
-                                                                          preferredStyle:UIAlertControllerStyleAlert];
-        
-        UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK"
-                                                     style:UIAlertActionStyleDefault
-                                                   handler:^(UIAlertAction *action) {
-                                                       [self dismissViewControllerAnimated:YES completion:nil];
-                                                   }];
-        
-        [alertController addAction:ok];
-        
-        [self presentViewController:alertController
-                           animated:YES
-                         completion:nil];
+        [self displayAlertMessagesForError:error.localizedDescription];
     }];
     
     // step 5
@@ -142,21 +123,7 @@
         self.title = @"PLIST Retrieved";
         [self.tableView reloadData];
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Error Retrieving Weather"
-                                                                                 message:error.localizedDescription
-                                                                          preferredStyle:UIAlertControllerStyleAlert];
-        
-        UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK"
-                                                     style:UIAlertActionStyleDefault
-                                                   handler:^(UIAlertAction *action) {
-                                                       [self dismissViewControllerAnimated:YES completion:nil];
-                                                   }];
-        
-        [alertController addAction:ok];
-        
-        [self presentViewController:alertController
-                           animated:YES
-                         completion:nil];
+        [self displayAlertMessagesForError:error.localizedDescription];
     }];
     
     [operation start];
@@ -179,21 +146,7 @@
         xmlParser.delegate = self;
         [xmlParser parse];
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Error Retrieving Weather"
-                                                                                 message:error.localizedDescription
-                                                                          preferredStyle:UIAlertControllerStyleAlert];
-        
-        UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK"
-                                                     style:UIAlertActionStyleDefault
-                                                   handler:^(UIAlertAction *action) {
-                                                       [self dismissViewControllerAnimated:YES completion:nil];
-                                                   }];
-        
-        [alertController addAction:ok];
-        
-        [self presentViewController:alertController
-                           animated:YES
-                         completion:nil];
+        [self displayAlertMessagesForError:error.localizedDescription];
     }];
     
     [operation start];
@@ -201,7 +154,65 @@
 
 - (IBAction)clientTapped:(id)sender
 {
+    // step 1
+    NSURL *baseUrl = [NSURL URLWithString:BaseURLString];
+    NSDictionary *params = @{ @"format" : @"json" };
     
+    // step 2
+    AFHTTPSessionManager *manager = [[AFHTTPSessionManager alloc] initWithBaseURL:baseUrl];
+    manager.responseSerializer = [AFJSONResponseSerializer serializer];
+
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"AFHTTPSessionManager"
+                                                                             message:nil
+                                                                      preferredStyle:UIAlertControllerStyleActionSheet];
+    
+    UIAlertAction *httpGet = [UIAlertAction actionWithTitle:@"HTTP GET"
+                                                      style:UIAlertActionStyleDefault
+                                                    handler:^(UIAlertAction *action) {
+                                                        
+                                                        // step 3
+                                                        [manager GET:@"weather.php"
+                                                          parameters:params
+                                                             success:^(NSURLSessionDataTask *task, id responseObject) {
+                                                                 self.weather = responseObject;
+                                                                 self.title = @"HTTP GET";
+                                                                 [self.tableView reloadData];
+                                                             } failure:^(NSURLSessionDataTask *task, NSError *error) {
+                                                                 [self displayAlertMessagesForError:error.localizedDescription];
+                                                             }];
+
+                                                        [self dismissViewControllerAnimated:YES completion:nil];
+                                                    }];
+    
+    UIAlertAction *httpPost = [UIAlertAction actionWithTitle:@"HTTP POST"
+                                                       style:UIAlertActionStyleDefault
+                                                     handler:^(UIAlertAction *action) {
+                                                         
+                                                         //step 4
+                                                         [manager POST:@"weather.php"
+                                                            parameters:params
+                                                               success:^(NSURLSessionDataTask *task, id responseObject) {
+                                                                   self.weather = responseObject;
+                                                                   self.title = @"HTTP POST";
+                                                                   [self.tableView reloadData];
+                                                               } failure:^(NSURLSessionDataTask *task, NSError *error) {
+                                                                   [self displayAlertMessagesForError:error.localizedDescription];
+                                                               }];
+                                                         
+                                                         [self dismissViewControllerAnimated:YES completion:nil];
+                                                     }];
+    
+    UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Cancel"
+                                                     style:UIAlertActionStyleCancel
+                                                   handler:^(UIAlertAction *action) {
+                                                       [self dismissViewControllerAnimated:YES completion:nil];
+                                                   }];
+    
+    [alertController addAction:httpGet];
+    [alertController addAction:httpPost];
+    [alertController addAction:cancel];
+    
+    [self presentViewController:alertController animated:YES completion:nil];
 }
 
 - (IBAction)apiTapped:(id)sender
@@ -258,6 +269,25 @@
     
     cell.textLabel.text = [daysWeather weatherDescription];
     
+    NSURL *url = [NSURL URLWithString:[daysWeather weatherIconURL]];
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    UIImage *placeholderImage = [UIImage imageNamed:@"placeholder"];
+    
+    __weak UITableViewCell *weakCell = cell;
+    weakCell.imageView.alpha = 0;
+
+    [cell.imageView setImageWithURLRequest:request
+                          placeholderImage:placeholderImage
+                                   success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
+                                       weakCell.imageView.image = image;
+                                       [UIView animateWithDuration:0.3
+                                                        animations:^{
+                                                            weakCell.imageView.alpha = 1;
+                                                            [self.view layoutIfNeeded];
+                                                        }];
+                                       [weakCell setNeedsLayout];
+                                   }
+                                   failure:nil];
     return cell;
 }
 
@@ -347,5 +377,52 @@
     self.title = @"XML Retrieved";
     [self.tableView reloadData];
 }
+
+#pragma mark - alert messages for error
+
+- (void)displayAlertMessagesForError:(NSString *)error
+{
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Error Retrieving Weather"
+                                                                             message:error
+                                                                      preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK"
+                                                 style:UIAlertActionStyleDefault
+                                               handler:^(UIAlertAction *action) {
+                                                   [self dismissViewControllerAnimated:YES completion:nil];
+                                               }];
+    
+    [alertController addAction:ok];
+    
+    [self presentViewController:alertController
+                       animated:YES
+                     completion:nil];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @end
