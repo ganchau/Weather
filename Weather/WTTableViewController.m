@@ -425,6 +425,7 @@
     if ([newLocation.timestamp timeIntervalSinceNow] > 300) {
         return;
     }
+    NSLog(@"LOCATION: %@", newLocation);
     
     [self.locationManager stopUpdatingLocation];
     
